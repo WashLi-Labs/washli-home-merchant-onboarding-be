@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.database import connect_to_database, close_database_connection
-from app.routes import otp, merchants
+from app.routes import merchants
 from app.config import get_settings
 
 settings = get_settings()
@@ -21,13 +21,13 @@ async def lifespan(app: FastAPI):
 # Initialize FastAPI app
 app = FastAPI(
     title="Merchant Onboarding API",
+    lifespan=lifespan,
     description="""
     ## FastAPI Backend for Merchant Registration and Onboarding
     
-    This API provides comprehensive merchant onboarding functionality including:
+    This API provides merchant onboarding functionality including:
     
     ### Features
-    - 📧 **Email OTP Verification**: Send and verify 4-digit OTP codes
     - 📝 **Merchant Registration**: Complete merchant registration with document upload
     - 📍 **Location Tracking**: Support for GPS coordinates via Google Maps
     - 📸 **Image Handling**: Store Base64 encoded images directly in database
@@ -57,46 +57,9 @@ app = FastAPI(
     - No file system dependencies
     - Images retrieved with merchant data
     
-    ### Google Maps Integration
-    
-    **Frontend Setup:**
-    ```html
-    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY"></script>
-    ```
-    
-    **JavaScript Implementation:**
-    ```javascript
-    // Initialize map
-    const map = new google.maps.Map(document.getElementById('map'), {
-      center: { lat: 6.9271, lng: 79.8612 },
-      zoom: 13
-    });
-    
-    // Add draggable marker
-    const marker = new google.maps.Marker({
-      position: map.getCenter(),
-      map: map,
-      draggable: true
-    });
-    
-    // Capture location on marker drag
-    marker.addListener('dragend', (event) => {
-      const location = {
-        lat: event.latLng.lat(),
-        lng: event.latLng.lng()
-      };
-      // Send this location object with registration
-    });
-    ```
-    
     ### Workflow
     
-    1. **Send OTP** → `POST /api/v1/otp/send`
-    2. **Verify OTP** → `POST /api/v1/otp/verify`
-    3. **Register Merchant** → `POST /api/v1/merchants/register`
-    
-    ### Authentication
-    Currently, no authentication is required. For production, implement JWT or OAuth2.
+    1. **Register Merchant** → `POST /api/v1/merchants/register`
     
     ### Error Handling
     All endpoints return standard HTTP status codes:
@@ -127,7 +90,6 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(otp.router, prefix="/api/v1")
 app.include_router(merchants.router, prefix="/api/v1")
 
 

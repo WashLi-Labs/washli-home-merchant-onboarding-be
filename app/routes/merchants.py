@@ -72,7 +72,7 @@ async def register_merchant(
             outlet_name=merchant.outletName,
             outlet_address=merchant.outletAddress,
             city=merchant.city,
-            region=merchant.region,
+            # region removed
             location=merchant.location.model_dump(),
             outlet_logo=merchant.outletLogo,  # Base64 string
             how_did_you_hear=merchant.howDidYouHear,
@@ -103,6 +103,7 @@ async def register_merchant(
             account_number=merchant.accountNumber,
             bank_name=merchant.bankName,
             branch_name=merchant.branchName,
+            branch_code=merchant.branchCode,
             bank_statement=merchant.bankStatement,  # Base64 string
             status='pending'
         )
@@ -124,49 +125,4 @@ async def register_merchant(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error registering merchant: {str(e)}"
-        )
-
-
-@router.get(
-    "/{merchant_id}",
-    summary="Get Merchant Details",
-    description="Retrieve merchant information by ID"
-)
-async def get_merchant(merchant_id: int, db: AsyncSession = Depends(get_session)):
-    """Get merchant details by ID"""
-    try:
-        stmt = select(Merchant).where(Merchant.id == merchant_id)
-        result = await db.execute(stmt)
-        merchant = result.scalar_one_or_none()
-        
-        if not merchant:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Merchant not found"
-            )
-        
-        # Convert to dict
-        merchant_dict = {
-            "id": merchant.id,
-            "email": merchant.email,
-            "phoneNumber": merchant.phone_number,
-            "merchantType": merchant.merchant_type,
-            "outletName": merchant.outlet_name,
-            "outletAddress": merchant.outlet_address,
-            "city": merchant.city,
-            "region": merchant.region,
-            "location": merchant.location,
-            "status": merchant.status,
-            "createdAt": merchant.created_at.isoformat() if merchant.created_at else None,
-            # Add other fields as needed
-        }
-        
-        return merchant_dict
-    
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error fetching merchant: {str(e)}"
         )

@@ -5,7 +5,7 @@ from app.database import Base
 
 class Merchant(Base):
     """Merchant table - stores all merchant registration data"""
-    __tablename__ = "merchants"
+    __tablename__ = "merchant_registrations"
     
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     
@@ -18,7 +18,7 @@ class Merchant(Base):
     outlet_name = Column(String(255), nullable=False)
     outlet_address = Column(Text, nullable=False)
     city = Column(String(100), nullable=False)
-    region = Column(String(100))
+    # region removed
     
     # Location (stored as JSON)
     location = Column(JSON, nullable=False)  # {"lat": 6.9271, "lng": 79.8612}
@@ -76,6 +76,7 @@ class Merchant(Base):
     account_number = Column(String(50), nullable=False)
     bank_name = Column(String(255), nullable=False)
     branch_name = Column(String(255), nullable=False)
+    branch_code = Column(String(100))
     bank_statement = Column(Text)  # Base64 encoded statement
     
     # Status and Metadata

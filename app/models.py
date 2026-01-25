@@ -34,7 +34,7 @@ class MerchantRegistration(BaseModel):
     outletName: str = Field(..., description="Name of the outlet")
     outletAddress: str = Field(..., description="Physical address")
     city: str = Field(..., description="City")
-    region: Optional[str] = Field(None, description="Region")
+    # region removed
     location: Location = Field(..., description="GPS coordinates")
     outletLogo: Optional[str] = Field(None, description="Base64 encoded logo")
     
@@ -89,6 +89,7 @@ class MerchantRegistration(BaseModel):
     accountNumber: str = Field(..., description="Bank account number")
     bankName: str = Field(..., description="Bank name")
     branchName: str = Field(..., description="Branch name")
+    branchCode: Optional[str] = Field(None, description="Branch code")
     bankStatement: Optional[str] = Field(None, description="Base64 encoded bank statement")
     
     class Config:
@@ -128,47 +129,8 @@ class MerchantRegistration(BaseModel):
                 "beneficiaryName": "John Doe",
                 "accountNumber": "1234567890",
                 "bankName": "Commercial Bank",
-                "branchName": "Colombo Main"
-            }
-        }
-
-
-class SendOTPRequest(BaseModel):
-    """Request to send OTP"""
-    email: EmailStr = Field(..., description="Email address to send OTP")
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "email": "merchant@example.com"
-            }
-        }
-
-
-class VerifyOTPRequest(BaseModel):
-    """Request to verify OTP"""
-    email: EmailStr = Field(..., description="Email address")
-    otp: str = Field(..., description="4-digit OTP code", min_length=4, max_length=4)
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "email": "merchant@example.com",
-                "otp": "1234"
-            }
-        }
-
-
-class OTPResponse(BaseModel):
-    """OTP operation response"""
-    success: bool = Field(..., description="Operation success status")
-    message: str = Field(..., description="Response message")
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "success": True,
-                "message": "OTP sent successfully"
+                "branchName": "Colombo Main",
+                "branchCode": "001"
             }
         }
 

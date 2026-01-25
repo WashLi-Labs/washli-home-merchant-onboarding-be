@@ -1,7 +1,9 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.pool import NullPool
 import os
+import ssl
 from app.config import get_settings
 
 settings = get_settings()
@@ -35,10 +37,13 @@ def get_ssl_args() -> dict:
         print("Proceeding without SSL. Set DB_SSL_ENABLED=false to disable this warning.")
         return {}
     
+    # Create SSL context for aiomysql
+    ssl_context = ssl.create_default_context(cafile=ssl_ca_path)
+    ssl_context.check_hostname = False
+    ssl_context.verify_mode = ssl.CERT_REQUIRED
+    
     return {
-        "ssl": {
-            "ca": ssl_ca_path
-        }
+        "ssl": ssl_context
     }
 
 
