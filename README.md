@@ -114,7 +114,6 @@ Submit a new merchant registration.
 {
   "email": "merchant@example.com",
   "howDidYouHear": "Social Media",
-  "region": "Western",
   "merchantType": "Laundromat",
   "outletName": "Clean & Fresh Laundry",
   "outletAddress": "123 Main Street",
