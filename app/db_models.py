@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, Boolean, Float, DateTime, Text, JSON
+from sqlalchemy.dialects.mysql import LONGTEXT
 from sqlalchemy.sql import func
 from app.database import Base
 
@@ -23,7 +24,7 @@ class Merchant(Base):
     # Location (stored as JSON)
     location = Column(JSON, nullable=False)  # {"lat": 6.9271, "lng": 79.8612}
     
-    outlet_logo = Column(Text)  # Base64 encoded image
+    outlet_logo = Column(LONGTEXT)  # Base64 encoded image
     
     # Marketing
     how_did_you_hear = Column(String(100), nullable=False)
@@ -48,28 +49,28 @@ class Merchant(Base):
     business_registered = Column(Boolean, nullable=False)
     parent_name = Column(String(255))
     br_number = Column(String(100))
-    br_document = Column(Text)  # Base64 encoded document
+    br_document = Column(LONGTEXT)  # Base64 encoded document
     
     # Tax Information
     tax_registered = Column(Boolean, nullable=False)
     tin_number = Column(String(100))
-    tax_certificate = Column(Text)  # Base64 encoded certificate
-    tdl_document = Column(Text)  # Base64 encoded document
+    tax_certificate = Column(LONGTEXT)  # Base64 encoded certificate
+    tdl_document = Column(LONGTEXT)  # Base64 encoded document
     
     # VAT Information
     vat_registered = Column(Boolean, nullable=False)
     vat_number = Column(String(100))
     
     # Identity Documents
-    nic_front = Column(Text, nullable=False)  # Base64 encoded image
-    nic_back = Column(Text, nullable=False)  # Base64 encoded image
+    nic_front = Column(LONGTEXT, nullable=False)  # Base64 encoded image
+    nic_back = Column(LONGTEXT, nullable=False)  # Base64 encoded image
     
     # Business Documents
-    menu_document = Column(Text)  # Base64 encoded document
+    menu_document = Column(LONGTEXT)  # Base64 encoded document
     
     # Images
     has_images = Column(String(10), nullable=False)
-    item_images = Column(Text)  # Base64 encoded images
+    item_images = Column(LONGTEXT)  # Base64 encoded images
     
     # Banking Information
     beneficiary_name = Column(String(255), nullable=False)
@@ -77,7 +78,7 @@ class Merchant(Base):
     bank_name = Column(String(255), nullable=False)
     branch_name = Column(String(255), nullable=False)
     branch_code = Column(String(100))
-    bank_statement = Column(Text)  # Base64 encoded statement
+    bank_statement = Column(LONGTEXT)  # Base64 encoded statement
     
     # Status and Metadata
     status = Column(String(20), default='pending', index=True)  # pending, approved, rejected
