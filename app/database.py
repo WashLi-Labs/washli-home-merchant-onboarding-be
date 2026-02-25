@@ -40,7 +40,8 @@ def get_ssl_args() -> dict:
     # Create SSL context for aiomysql
     ssl_context = ssl.create_default_context(cafile=ssl_ca_path)
     ssl_context.check_hostname = False
-    ssl_context.verify_mode = ssl.CERT_REQUIRED
+    # Relaxing SSL verification to DEBUG the "struct.error" / handshake failure
+    ssl_context.verify_mode = ssl.CERT_NONE
     
     return {
         "ssl": ssl_context
