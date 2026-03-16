@@ -69,3 +69,6 @@ Thumbs.db
 # Alembic
 # Keep migrations folder but ignore generated files if needed
 # migrations/versions/*.pyc
+
+# Firebase Credentials
+serviceAccountKey.json

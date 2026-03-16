@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     
     # Application
     secret_key: str = "change-this-secret-key"
+    firebase_credentials_path: str = "serviceAccountKey.json"
+    firestore_database_id: str = "merchant-onboarding"
     
     class Config:
         env_file = ".env"
