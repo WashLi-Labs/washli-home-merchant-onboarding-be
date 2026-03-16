@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.database import connect_to_database, close_database_connection
+from app.firebase import init_firebase
 from app.routes import merchants
 from app.config import get_settings
 
@@ -13,6 +14,7 @@ async def lifespan(app: FastAPI):
     """Application lifespan events"""
     # Startup
     await connect_to_database()
+    init_firebase()
     yield
     # Shutdown
     await close_database_connection()

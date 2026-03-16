@@ -1,10 +1,11 @@
 from fastapi import APIRouter, HTTPException, status, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from datetime import datetime
+from datetime import datetime, timezone
 from app.models import MerchantRegistration, MerchantResponse
 from app.database import get_session
 from app.db_models import Merchant
+from app.firebase import get_firestore
 
 router = APIRouter(prefix="/merchants", tags=["Merchant Management"])
 
@@ -111,6 +112,26 @@ async def register_merchant(
         db.add(new_merchant)
         await db.commit()
         await db.refresh(new_merchant)
+        
+        # Save to Firebase Firestore
+        try:
+            firestore_db = get_firestore()
+            # We don't save large base64 images to Firestore to save costs/storage limits,
+            # or you can include them by just dumping `merchant.model_dump()`.
+            # Let's save a condensed version
+            merchant_data = merchant.model_dump(exclude={
+                'outletLogo', 'brDocument', 'taxCertificate', 'tdlDocument', 
+                'nicFront', 'nicBack', 'menuDocument', 'itemImages', 'bankStatement'
+            })
+            merchant_data['sql_id'] = str(new_merchant.id)
+            merchant_data['status'] = 'pending'
+            merchant_data['createdAt'] = datetime.now(timezone.utc).isoformat()
+            
+            # Using email as document ID, or using auto-generated
+            firestore_db.collection('merchants').document(merchant.email).set(merchant_data)
+        except Exception as fb_err:
+            print(f"Warning: Failed to sync to Firestore: {fb_err}")
+            # we continue even if Firebase fails, or you could raise an exception
         
         return MerchantResponse(
             success=True,
