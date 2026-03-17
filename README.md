@@ -1,6 +1,6 @@
 # Washli Merchant Onboarding Backend
 
-**Production-ready FastAPI backend for merchant registration.**
+**Production-ready FastAPI backend for merchant registration using Firebase Firestore.**
 
 This project acts as the backend service for onboarding new merchants to the Washli platform. It handles the submission of comprehensive merchant details, including business information, location data, operating hours, and document proofs (as Base64 encoded images).
 
@@ -9,12 +9,12 @@ This project acts as the backend service for onboarding new merchants to the Was
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                    FastAPI Application                   │
-1│  Routes Layer:                                           │
+│  Routes Layer:                                           │
 │  └─ /api/v1/merchants  → Merchant Registration          │
 ├─────────────────────────────────────────────────────────┤
 │  Data Layer:                                             │
-│  ├─ SQLAlchemy ORM (Async)                              │
-│  └─ MySQL 8.0+ with SSL                                 │
+│  ├─ Firebase Admin SDK (Firestore)                       │
+│  └─ Google Cloud Firestore                               │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -27,16 +27,15 @@ washli-home-merchant-onboarding-be/
 │   ├── __init__.py              # Package initializer
 │   ├── main.py                  # FastAPI app entry point
 │   ├── config.py                # Environment configuration
-│   ├── database.py              # Database connection management
-│   ├── db_models.py             # SQLAlchemy ORM models
+│   ├── firebase.py              # Firestore client initialization
 │   ├── models.py                # Pydantic validation models
 │   │
 │   └── routes/                  # API endpoint handlers
 │       ├── __init__.py
 │       └── merchants.py         # POST /api/v1/merchants/register
 │
-├── .env.example                 # Environment variables template
-├── .gitignore                   # Git ignore rules
+├── .env                         # Environment variables
+├── serviceAccountKey.json       # Firebase service account credentials
 ├── requirements.txt             # Python dependencies
 └── README.md                    # This file
 ```
@@ -46,7 +45,7 @@ washli-home-merchant-onboarding-be/
 ## 📂 Key Concepts
 
 ### **1. Base64 Image Storage**
-Instead of using a file system or external object storage (like S3), this service accepts images (logos, documents, NICs) as **Base64 encoded strings** within the JSON payload. These strings are stored directly in `TEXT` or `LONGTEXT` columns in the MySQL database.
+Instead of using a file system or external object storage (like S3), this service accepts images (logos, documents, NICs) as **Base64 encoded strings** within the JSON payload. These strings are stored directly in Firestore documents.
 - **Frontend Resp:** Convert files to Base64 strings before sending.
 - **Backend Resp:** Store and retrieve strings as is.
 
@@ -62,11 +61,11 @@ In `app/models.py`, you will see a `Config` class with `json_schema_extra`.
 ### **1. Environment Setup**
 
 ```bash
-# Copy environment template
-cp .env.example .env
+# Add your Firebase service account key
+# Place your 'serviceAccountKey.json' in the root directory.
 
 # Edit .env with your credentials
-# Required: DB credentials, SSL certificate path (if enabled)
+# Required: FIREBASE_CREDENTIALS_PATH, FIRESTORE_DATABASE_ID
 ```
 
 ### **2. Install Dependencies**
@@ -74,29 +73,20 @@ cp .env.example .env
 ```bash
 # Create virtual environment
 python -m venv .venv
-source .venv/Scripts/activate  # Windows: .venv\Scripts\activate
+# Activate (Windows)
+.venv\Scripts\activate
 
 # Install packages
 pip install -r requirements.txt
 ```
 
-### **3. Database Setup**
-
-Ensure you have a MySQL database running.
-
-```sql
--- Create database
-CREATE DATABASE merchant_onboarding;
-```
-
-The application will automatically create the necessary tables on startup.
-
-### **4. Start Server**
+### **3. Start Server**
 
 ```bash
 # Development mode
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
+
 
 ---
 
