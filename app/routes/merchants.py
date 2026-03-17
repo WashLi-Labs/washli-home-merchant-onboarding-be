@@ -1,13 +1,50 @@
-from fastapi import APIRouter, HTTPException, status, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from fastapi import APIRouter, HTTPException, status
 from datetime import datetime, timezone
+import base64
+import uuid
+import re
 from app.models import MerchantRegistration, MerchantResponse
-from app.database import get_session
-from app.db_models import Merchant
-from app.firebase import get_firestore
+from app.firebase import get_firestore, get_storage_bucket
 
 router = APIRouter(prefix="/merchants", tags=["Merchant Management"])
+
+
+def upload_base64_to_storage(base64_str: str, folder: str, filename_prefix: str) -> str:
+    """
+    Uploads a Base64 string to Firebase Storage and returns the public URL.
+    """
+    if not base64_str or not isinstance(base64_str, str) or not base64_str.startswith("data:"):
+        return base64_str # Not a base64 image or already a URL
+
+    try:
+        # Extract format and data
+        # Format: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...
+        match = re.match(r'data:(.*?);base64,(.*)', base64_str)
+        if not match:
+            return base64_str
+            
+        content_type, encoded_data = match.groups()
+        extension = content_type.split('/')[-1]
+        
+        # Decode data
+        file_data = base64.b64decode(encoded_data)
+        
+        # Generate unique filename
+        filename = f"{folder}/{filename_prefix}_{uuid.uuid4().hex}.{extension}"
+        
+        # Upload to Storage
+        bucket = get_storage_bucket()
+        blob = bucket.blob(filename)
+        blob.upload_from_string(file_data, content_type=content_type)
+        
+        # Make public and get URL
+        # Note: In production you might want to use signed URLs or Firebase's download tokens
+        blob.make_public()
+        return blob.public_url
+        
+    except Exception as e:
+        print(f"Failed to upload to storage: {e}")
+        return base64_str
 
 
 @router.post(
@@ -16,36 +53,19 @@ router = APIRouter(prefix="/merchants", tags=["Merchant Management"])
     status_code=status.HTTP_201_CREATED,
     summary="Register New Merchant",
     description="""
-    Register a new merchant with complete business information.
+    Register a new merchant. Images are uploaded to Firebase Storage and URLs are stored in Firestore.
     
     **Process:**
-    1. Validate all required fields
-    2. Store Base64 encoded images directly in database
-    3. Return merchant ID
-    
-    **Image Handling:**
-    - Images should be sent as Base64 encoded strings
-    - Images are stored directly in the database (no file system storage)
-    - Frontend should handle image compression before sending
-    - Supported formats: PNG, JPG, PDF (as Base64)
-    
-    **Validation:**
-    - Email must be verified (isEmailVerified = true)
-    - Location coordinates are required
-    - Operating hours for all days
-    
-    **Required Documents:**
-    - NIC Front and Back (mandatory)
-    - Business Registration (if businessRegistered = true)
-    - Tax Certificate (if taxRegistered = true)
-    - Bank Statement (optional)
+    1. Validate required fields
+    2. Upload all Base64 images to Firebase Storage
+    3. Store merchant metadata and image URLs in Firestore
+    4. Return success status
     """
 )
 async def register_merchant(
-    merchant: MerchantRegistration,
-    db: AsyncSession = Depends(get_session)
+    merchant: MerchantRegistration
 ):
-    """Register a new merchant"""
+    """Register a new merchant via Firebase Storage & Firestore"""
     try:
         # Validate email verification
         if not merchant.isEmailVerified:
@@ -54,96 +74,58 @@ async def register_merchant(
                 detail="Email must be verified before registration"
             )
         
-        # Check if email already exists
-        stmt = select(Merchant).where(Merchant.email == merchant.email)
-        result = await db.execute(stmt)
-        existing = result.scalar_one_or_none()
+        firestore_db = get_firestore()
         
-        if existing:
+        # Check if email already exists
+        existing_docs = firestore_db.collection('merchants').where('email', '==', merchant.email).limit(1).get()
+        if len(list(existing_docs)) > 0:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Merchant with this email already exists"
             )
         
-        # Create merchant record - store Base64 images directly
-        new_merchant = Merchant(
-            email=merchant.email,
-            phone_number=merchant.phoneNumber,
-            merchant_type=merchant.merchantType,
-            outlet_name=merchant.outletName,
-            outlet_address=merchant.outletAddress,
-            city=merchant.city,
-            # region removed
-            location=merchant.location.model_dump(),
-            outlet_logo=merchant.outletLogo,  # Base64 string
-            how_did_you_hear=merchant.howDidYouHear,
-            is_email_verified=merchant.isEmailVerified,
-            owner_name=merchant.ownerName,
-            owner_phone=merchant.ownerPhone,
-            owner_email=merchant.ownerEmail,
-            manager_name=merchant.managerName,
-            manager_phone=merchant.managerPhone,
-            manager_email=merchant.managerEmail,
-            operating_hours=[hour.model_dump() for hour in merchant.operatingHours],
-            business_registered=merchant.businessRegistered,
-            parent_name=merchant.parentName,
-            br_number=merchant.brNumber,
-            br_document=merchant.brDocument,  # Base64 string
-            tax_registered=merchant.taxRegistered,
-            tin_number=merchant.tinNumber,
-            tax_certificate=merchant.taxCertificate,  # Base64 string
-            tdl_document=merchant.tdlDocument,  # Base64 string
-            vat_registered=merchant.vatRegistered,
-            vat_number=merchant.vatNumber,
-            nic_front=merchant.nicFront,  # Base64 string
-            nic_back=merchant.nicBack,  # Base64 string
-            menu_document=merchant.menuDocument,  # Base64 string
-            has_images=merchant.hasImages,
-            item_images=merchant.itemImages,  # Base64 string
-            beneficiary_name=merchant.beneficiaryName,
-            account_number=merchant.accountNumber,
-            bank_name=merchant.bankName,
-            branch_name=merchant.branchName,
-            branch_code=merchant.branchCode,
-            bank_statement=merchant.bankStatement,  # Base64 string
-            status='pending'
-        )
+        # Create a new document reference
+        new_doc_ref = firestore_db.collection('merchants').document()
+        merchant_id = new_doc_ref.id
         
-        db.add(new_merchant)
-        await db.commit()
-        await db.refresh(new_merchant)
+        # Prepare data
+        merchant_data = merchant.model_dump()
         
-        # Save to Firebase Firestore
-        try:
-            firestore_db = get_firestore()
-            # We don't save large base64 images to Firestore to save costs/storage limits,
-            # or you can include them by just dumping `merchant.model_dump()`.
-            # Let's save a condensed version
-            merchant_data = merchant.model_dump(exclude={
-                'outletLogo', 'brDocument', 'taxCertificate', 'tdlDocument', 
-                'nicFront', 'nicBack', 'menuDocument', 'itemImages', 'bankStatement'
-            })
-            merchant_data['sql_id'] = str(new_merchant.id)
-            merchant_data['status'] = 'pending'
-            merchant_data['createdAt'] = datetime.now(timezone.utc).isoformat()
-            
-            # Using email as document ID, or using auto-generated
-            firestore_db.collection('merchants').document(merchant.email).set(merchant_data)
-        except Exception as fb_err:
-            print(f"Warning: Failed to sync to Firestore: {fb_err}")
-            # we continue even if Firebase fails, or you could raise an exception
+        # Define fields to upload to storage
+        image_fields = [
+            'outletLogo', 'brDocument', 'taxCertificate', 'tdlDocument', 
+            'nicFront', 'nicBack', 'menuDocument', 'itemImages', 'bankStatement'
+        ]
+        
+        # Process image uploads
+        for field in image_fields:
+            if merchant_data.get(field):
+                print(f"Uploading {field} to storage...")
+                merchant_data[field] = upload_base64_to_storage(
+                    merchant_data[field], 
+                    folder=f"merchants/{merchant.email}", 
+                    filename_prefix=field
+                )
+        
+        merchant_data['status'] = 'pending'
+        merchant_data['createdAt'] = datetime.now(timezone.utc).isoformat()
+        merchant_data['merchantId'] = merchant_id
+        
+        # Save to Firestore
+        new_doc_ref.set(merchant_data)
         
         return MerchantResponse(
             success=True,
-            message="Merchant registered successfully",
-            merchantId=str(new_merchant.id)
+            message="Merchant registered successfully with document storage",
+            merchantId=merchant_id
         )
     
     except HTTPException:
         raise
     except Exception as e:
-        await db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error registering merchant: {str(e)}"
         )
+
+
