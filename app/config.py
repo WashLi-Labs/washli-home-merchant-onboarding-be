@@ -3,19 +3,12 @@ from functools import lru_cache
 
 
 class Settings(BaseSettings):
-    # MySQL Database
-    db_host: str = "localhost"
-    db_port: int = 3306
-    db_user: str = "root"
-    db_password: str = ""
-    db_name: str = "washli"
-    db_ssl_ca: str = "certs/ca.pem"
-    db_ssl_enabled: bool = True
-    
     # Application
     secret_key: str = "change-this-secret-key"
     firebase_credentials_path: str = "serviceAccountKey.json"
     firestore_database_id: str = "merchant-onboarding"
+    firebase_storage_bucket: str = "washli-2a77a.firebasestorage.app"
+
     
     class Config:
         env_file = ".env"
