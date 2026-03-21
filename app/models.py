@@ -82,7 +82,7 @@ class MerchantRegistration(BaseModel):
     
     # Images
     hasImages: str = Field(..., description="Whether outlet has images")
-    itemImages: Optional[str] = Field(None, description="Base64 encoded item images")
+    itemImages: Optional[List[str]] = Field(None, description="Base64 encoded item images")
     
     # Banking Information
     beneficiaryName: str = Field(..., description="Bank account beneficiary name")
