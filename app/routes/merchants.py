@@ -99,13 +99,27 @@ async def register_merchant(
         
         # Process image uploads
         for field in image_fields:
-            if merchant_data.get(field):
+            field_value = merchant_data.get(field)
+            if field_value:
                 print(f"Uploading {field} to storage...")
-                merchant_data[field] = upload_base64_to_storage(
-                    merchant_data[field], 
-                    folder=f"merchants/{merchant.email}", 
-                    filename_prefix=field
-                )
+                if isinstance(field_value, list):
+                    # Handle multiple images (e.g., itemImages)
+                    urls = []
+                    for i, img_data in enumerate(field_value):
+                        url = upload_base64_to_storage(
+                            img_data, 
+                            folder=f"merchants/{merchant.email}", 
+                            filename_prefix=f"{field}_{i}"
+                        )
+                        urls.append(url)
+                    merchant_data[field] = urls
+                else:
+                    # Handle single image
+                    merchant_data[field] = upload_base64_to_storage(
+                        field_value, 
+                        folder=f"merchants/{merchant.email}", 
+                        filename_prefix=field
+                    )
         
         merchant_data['status'] = 'pending'
         merchant_data['createdAt'] = datetime.now(timezone.utc).isoformat()
