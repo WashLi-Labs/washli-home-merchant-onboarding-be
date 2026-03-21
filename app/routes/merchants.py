@@ -5,6 +5,7 @@ import uuid
 import re
 from app.models import MerchantRegistration, MerchantResponse
 from app.firebase import get_firestore, get_storage_bucket
+from app.utils.menu_utils import extract_items_from_document
 
 router = APIRouter(prefix="/merchants", tags=["Merchant Management"])
 
@@ -127,6 +128,44 @@ async def register_merchant(
         
         # Save to Firestore
         new_doc_ref.set(merchant_data)
+
+        # Handle Menu Item Extraction if menuDocument is provided
+        if merchant.menuDocument:
+            try:
+                print(f"Extracting menu items for merchant {merchant_id}...")
+                
+                # The raw base64 data (without the data: format prefix)
+                base64_data = merchant.menuDocument
+                if base64_data.startswith("data:"):
+                    base64_data = base64_data.split(",")[1]
+                
+                document_bytes = base64.b64decode(base64_data)
+                
+                # Use a dummy filename for type detection if extension not known
+                # In a real scenario, we might want to pass the original filename if available
+                extracted_items = extract_items_from_document(document_bytes, "menu.pdf")
+                
+                if extracted_items:
+                    print(f"Found {len(extracted_items)} items. Saving to Firestore...")
+                    menu_items_collection = firestore_db.collection('merchant-menu-items')
+                    
+                    for item_name in extracted_items:
+                        item_id = str(uuid.uuid4())
+                        menu_items_collection.document(item_id).set({
+                            "itemId": item_id,
+                            "merchantId": merchant_id,
+                            "itemName": item_name,
+                            "createdAt": datetime.now(timezone.utc).isoformat(),
+                            "status": "active"
+                        })
+                    print("Menu items saved successfully.")
+                else:
+                    print("No predefined menu items found in the document.")
+                    
+            except Exception as e:
+                print(f"Error during menu item extraction: {e}")
+                # We don't want to fail the whole registration if extraction fails
+                # but we log the error
         
         return MerchantResponse(
             success=True,
