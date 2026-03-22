@@ -1,13 +1,20 @@
 name: Deploy to GCP VM
 
+# Trigger only when a PR targeting 'master' is closed
 on:
-  push:
+  pull_request:
+    types:
+      - closed
     branches:
-      - main
       - master
 
 jobs:
   deploy:
+    # This single 'if' statement does exactly what you requested:
+    # 1. Checks if the PR was actually MERGED (not just rejected/closed)
+    # 2. Checks if the PR came from the 'main' branch
+    if: github.event.pull_request.merged == true && github.event.pull_request.head.ref == 'main'
+    
     runs-on: ubuntu-latest
     steps:
       - name: SSH into VM and Deploy
@@ -18,8 +25,12 @@ jobs:
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
             cd ~/washli-home-merchant-onboarding-be
-            # Pull the latest code
-            git pull origin main
+            
+            # Checkout the master branch (since we merged into master)
+            git checkout master
+            
+            # Pull the latest merged code
+            git pull origin master
             
             # Build and deploy the new container using Docker Compose
             docker-compose up -d --build
