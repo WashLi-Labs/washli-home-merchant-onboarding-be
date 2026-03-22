@@ -22,14 +22,14 @@ jobs:
             git pull origin main
             
             # Rebuild the Docker image with the new code
-            sudo docker build -t washli-be-image .
+            docker build -t washli-be-image .
             
             # Stop the old container safely
-            sudo docker stop washli-be-container || true
-            sudo docker rm washli-be-container || true
+            docker stop washli-be-container || true
+            docker rm washli-be-container || true
             
             # Start the new container
-            sudo docker run -d -p 80:10000 --name washli-be-container --env-file .env --restart unless-stopped washli-be-image
+            docker run -d -p 80:10000 --name washli-be-container --env-file .env --restart unless-stopped washli-be-image
             
             # Clean up old unused images to save disk space
-            sudo docker image prune -f
+            docker image prune -f
