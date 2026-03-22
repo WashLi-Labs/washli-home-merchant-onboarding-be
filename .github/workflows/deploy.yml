@@ -22,7 +22,7 @@ jobs:
             git pull origin main
             
             # Build and deploy the new container using Docker Compose
-            docker compose up -d --build
+            docker-compose up -d --build
             
             # Clean up old unused images to save disk space
             docker image prune -f
