@@ -4,6 +4,8 @@ services:
   washli-be:
     build: .
     container_name: washli-be-container
+    # We override the Dockerfile CMD to include --root-path so FastAPI knows it is behind a proxy
+    command: ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port $$PORT --root-path /merchant-be"]
     ports:
       - "80:10000"
     env_file:
