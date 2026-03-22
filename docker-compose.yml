@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  washli-be:
+    build: .
+    container_name: washli-be-container
+    ports:
+      - "80:10000"
+    env_file:
+      - .env
+    restart: unless-stopped
