@@ -4,7 +4,7 @@ services:
   washli-be:
     build: .
     container_name: washli-be-container
-    command: ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port $$PORT --root-path /merchant-be"]
+    command: ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port 10000 --root-path /merchant-be"]
     # Notice we REMOVED the "ports: 80:10000" section! 
     # It is completely locked down and only the gateway can talk to it now!
     env_file:
