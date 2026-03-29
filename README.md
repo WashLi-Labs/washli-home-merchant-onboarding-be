@@ -84,11 +84,19 @@ pip install -r requirements.txt
 
 ```bash
 # Development mode
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn app.main:app --reload --host 0.0.0.0 --port 10000
 ```
 
+### **4. Docker Deployment**
 
----
+> **Note:** We now use a centralized infrastructure repository for Docker and API Gateway orchestration. 
+To run this backend in Docker, please navigate to the `infra-repo` project and use its `docker-compose.yml`.
+
+```bash
+cd ../infra-repo
+docker-compose up -d --build washli-be
+```
+
 
 ## 📡 API Endpoints
 
