@@ -18,14 +18,14 @@ jobs:
           username: ${{ secrets.VM_USERNAME }}
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
+            # 1. Pull the backend code
             cd ~/washli-home-merchant-onboarding-be
-            
-            # Switch to main branch and pull latest code
             git checkout main
             git pull origin main
             
-            # Build and deploy the new container using Docker Compose
+            # 2. Rebuild and deploy using the Central Infrastructure Repo
+            cd ~/infra-repo
             docker-compose up -d --build
             
-            # Clean up old unused images to save disk space
+            # 3. Clean up old unused images to save disk space
             docker image prune -f
